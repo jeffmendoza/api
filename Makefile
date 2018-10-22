@@ -11,7 +11,7 @@ repo_dir = .
 docker_gen = /usr/bin/protoc -I/protobuf -I$(repo_dir)
 out_path = $(OUT_PATH)
 else
-gen_img := gcr.io/istio-testing/protoc:2018-06-12
+gen_img := gcr.io/istio-testing/protoc:2018-10-22
 pwd := $(shell pwd)
 mount_dir := /src
 repo_dir := istio.io/api
@@ -317,6 +317,15 @@ $(envoy_pb_pythons): $(envoy_protos)
 
 clean-envoy:
 	rm -f $(envoy_pb_gos)
+
+#####################
+# Protolock
+#####################
+
+# Not used on Circle CI
+proto-commit:
+	docker run --rm -v $(pwd):$(repo_mount) -w $(repo_mount) \
+	--entrypoint=protolock $(gen_img) commit
 
 #####################
 # Cleanup

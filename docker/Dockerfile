@@ -37,12 +37,17 @@ RUN go get -u -v -ldflags '-w -s' \
         github.com/istio/tools/protoc-gen-docs \
         && install -c ${GOPATH}/bin/protoc-gen* ${OUTDIR}/usr/bin/
 
+RUN go get -u -v -ldflags '-w -s' \
+        github.com/nilslice/protolock/... \
+        && install -c ${GOPATH}/bin/protolock ${OUTDIR}/usr/bin/
+
 FROM znly/upx as packer
 COPY --from=protoc_builder /out/ /out/
 RUN upx --lzma \
         /out/usr/bin/protoc \
         /out/usr/bin/grpc_* \
-        /out/usr/bin/protoc-gen-*
+        /out/usr/bin/protoc-gen-* \
+        /out/usr/bin/protolock
 
 FROM alpine:3.7
 RUN apk add --update --no-cache libstdc++ make bash git openssh
@@ -61,4 +66,6 @@ RUN apk add --no-cache curl && \
         curl -L -o /protobuf/gogoproto/gogo.proto https://raw.githubusercontent.com/gogo/protobuf/master/gogoproto/gogo.proto && \
    apk del curl
 
-ENTRYPOINT ["/usr/bin/protoc", "-I/protobuf"]
+COPY ./run.sh /
+
+ENTRYPOINT ["/bin/ash", "/run.sh"]
