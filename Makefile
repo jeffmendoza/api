@@ -296,22 +296,31 @@ clean-authn:
 # envoy/...
 #####################
 
-envoy_path := envoy
-envoy_protos := $(shell find $(envoy_path) -type f -name '*.proto' | sort)
-envoy_pb_gos := $(envoy_protos:.proto=.pb.go)
-envoy_pb_pythons := $(envoy_protos:.proto=_pb2.py)
+# See golang/protobuf #39 for this:
+envoy_path_authn := envoy/config/filter/http/authn
+envoy_protos_authn := $(shell find $(envoy_path_authn) -type f -name '*.proto' | sort)
+envoy_pb_gos_authn := $(envoy_protos_authn:.proto=.pb.go)
+envoy_path_jwt_auth := envoy/config/filter/http/jwt_auth
+envoy_protos_jwt_auth := $(shell find $(envoy_path_jwt_auth) -type f -name '*.proto' | sort)
+envoy_pb_gos_jwt_auth := $(envoy_protos_jwt_auth:.proto=.pb.go)
+envoy_pb_pythons := $(envoy_protos_authn:.proto=_pb2.py) $(envoy_protos_jwt_auth:.proto=_pb2.py)
 
-generate-envoy-go: $(envoy_pb_gos) $(envoy_pb_doc)
+generate-envoy-go: $(envoy_pb_gos_authn) $(envoy_pb_gos_jwt_auth) $(envoy_pb_doc)
 
 # Envoy APIs is internal APIs, documents is not required.
-$(envoy_pb_gos): $(envoy_protos)
+$(envoy_pb_gos_authn): $(envoy_protos_authn)
+	## Generate envoy/*/*.pb.go
+	@$(docker_gen) $(gogofast_plugin) $^
+
+# Envoy APIs is internal APIs, documents is not required.
+$(envoy_pb_gos_jwt_auth): $(envoy_protos_jwt_auth)
 	## Generate envoy/*/*.pb.go
 	@$(docker_gen) $(gogofast_plugin) $^
 
 generate-envoy-python: $(envoy_pb_pythons)
 
 # Envoy APIs is internal APIs, documents is not required.
-$(envoy_pb_pythons): $(envoy_protos)
+$(envoy_pb_pythons): $(envoy_protos_authn) $(envoy_protos_jwt_auth)
 	## Generate envoy/*/*_pb2.py
 	@$(docker_gen) $(protoc_gen_python_plugin) $^
 
